@@ -7,6 +7,8 @@ import dev.aniketkadam.ecommerce.kafka.OrderConfirmation;
 import dev.aniketkadam.ecommerce.kafka.OrderProducer;
 import dev.aniketkadam.ecommerce.orderline.OrderLineRequest;
 import dev.aniketkadam.ecommerce.orderline.OrderLineService;
+import dev.aniketkadam.ecommerce.payment.PaymentClinet;
+import dev.aniketkadam.ecommerce.payment.PaymentRequest;
 import dev.aniketkadam.ecommerce.product.ProductClient;
 import dev.aniketkadam.ecommerce.product.PurchaseRequest;
 import jakarta.persistence.EntityNotFoundException;
@@ -26,6 +28,7 @@ public class OrderService {
     private final OrderMapper mapper;
     private final OrderLineService orderLineService;
     private final OrderProducer orderProducer;
+    private final PaymentClinet paymentClinet;
 
     public Integer createOrder(OrderRequest request) {
         CustomerResponse customer = this.customerClient.findCustomerById(request.customerId())
@@ -44,7 +47,14 @@ public class OrderService {
             );
         }
 
-        // todo start payment process
+        var paymentRequest = new PaymentRequest(
+                request.amount(),
+                request.paymentMethod(),
+                order.getId(),
+                order.getReference(),
+                customer
+        );
+        paymentClinet.requestOrderPayment(paymentRequest);
 
         orderProducer.sendOrderConfirmation(
                 new OrderConfirmation(
